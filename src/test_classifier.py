@@ -7,7 +7,6 @@ import numpy as np
 import argparse
 import pickle
 import time
-import cv2
 import os
 import sklearn
 from sklearn.metrics import classification_report

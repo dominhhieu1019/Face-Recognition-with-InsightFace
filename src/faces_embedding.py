@@ -14,24 +14,33 @@ import os
 ap = argparse.ArgumentParser()
 
 ap.add_argument("--dataset", default="../datasets/train",
-                help="Path to training dataset")
+                help="Path to training dataset images")
 ap.add_argument("--embeddings", default="outputs/embeddings.pickle")
 
 # Argument of insightface
 ap.add_argument('--image-size', default='112,112', help='')
-ap.add_argument('--model', default='../insightface/models/model-y1-test2/model,0', help='path to load model.')
+ap.add_argument('--model', default='../insightface/models/model-r100-ii/model,0', help='path to load model.')
 ap.add_argument('--ga-model', default='', help='path to load model.')
 ap.add_argument('--gpu', default=0, type=int, help='gpu id')
 ap.add_argument('--det', default=0, type=int, help='mtcnn option, 1 means using R+O, 0 means detect from begining')
 ap.add_argument('--flip', default=0, type=int, help='whether do lr flip aug')
 ap.add_argument('--threshold', default=1.24, type=float, help='ver dist threshold')
+ap.add_argument('--train', default=1, type=int, help='0 means test, 1 means train')
 
 args = ap.parse_args()
 
+def load_data(dataset):
+    with open(dataset, "rb") as file:
+        X, y, glasses, image_name, labels_dict = pickle.load(file)
+        return X, y, glasses, image_name, labels_dict
+if args.train:
+    X, y, glasses, image_name, labels_dict = load_data('../DB_AsianFace_face_mask/0_train.pkl')
+else:
+    X, y, glasses, image_name, labels_dict = load_data('../DB_AsianFace_face_mask/0_test.pkl')
 # Grab the paths to the input images in our dataset
 print("[INFO] quantifying faces...")
-imagePaths = list(paths.list_images(args.dataset))
-
+# imagePaths = list(paths.list_images(args.dataset))
+imagePaths = [os.path.join('../DB_AsianFace_face_mask/DB_AsianFace_face_mask', '_'.join(x.split('_')[1:-1]), x) for x in image_name]
 # Initialize the faces embedder
 embedding_model = face_model.FaceModel(args)
 
@@ -46,10 +55,11 @@ total = 0
 for (i, imagePath) in enumerate(imagePaths):
     # extract the person name from the image path
     print("[INFO] processing image {}/{}".format(i+1, len(imagePaths)))
-    name = imagePath.split(os.path.sep)[-2]
+    name = labels_dict[imagePath.split(os.path.sep)[-2]]
 
     # load the image
     image = cv2.imread(imagePath)
+    image = cv2.resize(image,(112,112), interpolation=cv2.INTER_AREA)
     # convert face to RGB color
     nimg = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     nimg = np.transpose(nimg, (2,0,1))
